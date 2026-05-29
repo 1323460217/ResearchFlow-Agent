@@ -46,7 +46,7 @@ Reporter   负责研究报告生成
 | 后端服务 | FastAPI, Python |
 | Agent 工作流 | LangGraph |
 | Agent 工具调用 | LangChain |
-| RAG 检索 | LlamaIndex, ChromaDB, BM25, Rerank |
+| RAG 检索 | ChromaDB, BM25, Rerank |
 | 记忆系统 | Redis |
 | 数据库 | PostgreSQL, SQLAlchemy Async |
 | 异步任务 | Celery, Redis Broker |
@@ -216,9 +216,3 @@ npm run build
 - 如果使用 Docker 部署，需要保留 Docker 相关文件。
 - 如果仅上传运行源码，需要确保部署环境中具备对应的配置文件和启动脚本。
 
-## 项目状态
-
-```text
-项目仍在持续开发中。
-部分功能需要配合模型 API Key、PostgreSQL、Redis 和 Celery Worker 才能完整运行。
-```
