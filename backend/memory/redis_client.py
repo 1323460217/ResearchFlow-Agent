@@ -1,4 +1,6 @@
 import logging
+from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from typing import Optional
 
 import redis.asyncio as aioredis
@@ -9,6 +11,7 @@ from backend.core.config import settings
 logger = logging.getLogger(__name__)
 
 _pool: Optional[Redis] = None
+_worker_pool: ContextVar[Optional[Redis]] = ContextVar("worker_redis_pool", default=None)
 
 
 async def get_redis() -> Redis:
@@ -18,6 +21,10 @@ async def get_redis() -> Redis:
     连接失败时记录警告但返回 None 会中断调用链 ——
     调用方应在 get_redis() 返回后自行处理可用性。
     """
+    worker_pool = _worker_pool.get()
+    if worker_pool is not None:
+        return worker_pool
+
     global _pool
     if _pool is not None:
         return _pool
@@ -37,6 +44,28 @@ async def get_redis() -> Redis:
         raise
 
     return _pool
+
+
+@asynccontextmanager
+async def worker_redis_runtime():
+    """Create and close a Redis client inside one Celery task lifecycle."""
+    client = aioredis.from_url(
+        settings.REDIS_URL,
+        encoding="utf-8",
+        decode_responses=True,
+        max_connections=10,
+    )
+    await client.ping()
+    token = _worker_pool.set(client)
+    try:
+        yield client
+    finally:
+        _worker_pool.reset(token)
+        close = getattr(client, "aclose", None)
+        if close is not None:
+            await close()
+        else:
+            await client.close()
 
 
 async def close_redis() -> None:

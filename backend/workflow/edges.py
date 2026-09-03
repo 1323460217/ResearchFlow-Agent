@@ -28,6 +28,10 @@ def should_continue(state: ResearchState) -> str:
         score, iteration, max_iter,
     )
 
+    if state.get("workflow_status") == "failed" or state.get("revision_action") == "stop":
+        logger.info("Workflow failed closed, routing to reporter for a failure notice")
+        return REPORTER
+
     if score >= 0.7:
         logger.info("Quality passed, routing to reporter")
         return REPORTER

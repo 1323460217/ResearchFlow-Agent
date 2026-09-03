@@ -7,6 +7,7 @@ pydantic-settings==2.5.0
 # Agent / AI
 langgraph==0.2.76
 langgraph-checkpoint-redis==0.0.1
+langgraph-checkpoint-postgres==2.0.25
 langchain==0.2.16
 langchain-openai==0.1.23
 llama-index==0.11.0

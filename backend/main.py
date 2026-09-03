@@ -13,9 +13,16 @@ from backend.core.middleware import RequestIDMiddleware
 logger = logging.getLogger(__name__)
 
 
+def validate_security_settings() -> None:
+    environment = settings.ENVIRONMENT.strip().lower()
+    if environment in {"production", "prod"} and settings.JWT_SECRET == "change-me-to-a-random-string":
+        raise RuntimeError("Refusing to start in production with the default JWT_SECRET")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    validate_security_settings()
     logger.info("Starting %s v%s", settings.APP_NAME, settings.APP_VERSION)
     if settings.JWT_SECRET == "change-me-to-a-random-string":
         logger.warning(
@@ -87,6 +94,7 @@ from backend.api.router_chat import router as chat_router
 from backend.api.router_kb import router as kb_router
 from backend.api.router_upload import router as upload_router
 from backend.api.router_reports import router as reports_router
+from backend.api.report_runs import router as report_runs_router
 from backend.api.router_workflow import router as workflow_router
 from backend.api.router_ws import router as ws_router
 
@@ -95,5 +103,6 @@ app.include_router(chat_router)
 app.include_router(kb_router)
 app.include_router(upload_router)
 app.include_router(reports_router)
+app.include_router(report_runs_router)
 app.include_router(workflow_router)
 app.include_router(ws_router)

@@ -2,7 +2,7 @@ from typing import Annotated, Any, List, Literal, Optional
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 
@@ -82,6 +82,11 @@ class ResearchState(TypedDict, total=False):
     messages: Annotated[List[BaseMessage], add_messages]
     # 用户提交的研究主题，是整个工作流的核心输入。
     research_topic: str
+    run_id: int
+    thread_id: str
+    query: str
+    conversation_id: Optional[int]
+    request_snapshot: Any
     # 当前用户 id，用于关联会话、权限、知识库和个性化信息。
     user_id: int
 
@@ -114,12 +119,26 @@ class ResearchState(TypedDict, total=False):
     revision_needed: bool
     # 具体修订建议；不需要修订时通常为 None。
     revision_feedback: Optional[str]  # 具体修改建议
+    # Critic 对下一步的结构化决策：补检索、重分析或停止。
+    revision_action: Optional[str]  # "retrieve_more" | "reanalyze" | "stop"
+    # 当前分析仍缺少的证据或覆盖面。
+    evidence_gaps: List[str]
 
     # ── Reporter 输出 ──
     # Reporter 生成的结构化报告段落。
     report_sections: List[ReportSection]
     # 最终报告全文；报告未生成前为 None。
     final_report: Optional[str]
+
+    # Human review and durable report-run metadata.
+    human_review_action: Optional[str]
+    human_feedback: Optional[str]
+    edited_report: Any
+    review_round: int
+    max_human_reviews: int
+    evidence_items: List[dict[str, Any]]
+    tool_calls: List[dict[str, Any]]
+    error_message: Optional[str]
 
     # ── 元数据 ──
     # 当前工作流迭代次数，用于限制 Critic 触发的重试循环。

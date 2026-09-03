@@ -4,16 +4,17 @@ import logging
 from celery import shared_task
 from sqlalchemy import select
 
-from backend.database.session import async_session_factory
+from backend.database.session import get_worker_session_factory
 from backend.models.document import Document
 from backend.models.knowledge_base import KnowledgeBase
 from backend.rag.ingestion import ingest_document
+from backend.worker.runtime import run_worker_coroutine
 
 logger = logging.getLogger(__name__)
 
 
 def _run_async(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(run_worker_coroutine(coro))
 
 
 @shared_task(bind=True, name="parse_document", max_retries=3, default_retry_delay=30)
@@ -21,7 +22,7 @@ def parse_document_task(self, document_id: int, chunk_strategy: str = "auto"):
     """Async parse and ingest a single document into the RAG pipeline."""
 
     async def _run():
-        async with async_session_factory() as db:
+        async with get_worker_session_factory()() as db:
             await ingest_document(
                 document_id=document_id,
                 db=db,
@@ -43,7 +44,7 @@ def build_index_task(self, knowledge_base_id: int, user_id: int):
     """Rebuild the entire vector index for a knowledge base."""
 
     async def _run():
-        async with async_session_factory() as db:
+        async with get_worker_session_factory()() as db:
             result = await db.execute(
                 select(KnowledgeBase).where(
                     KnowledgeBase.id == knowledge_base_id,

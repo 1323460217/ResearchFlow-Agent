@@ -7,15 +7,16 @@ from pathlib import Path
 from celery import shared_task
 from sqlalchemy import delete, select
 
-from backend.database.session import async_session_factory
+from backend.database.session import get_worker_session_factory
 from backend.models.agent_execution import AgentExecution
 from backend.models.document import Document
+from backend.worker.runtime import run_worker_coroutine
 
 logger = logging.getLogger(__name__)
 
 
 def _run_async(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(run_worker_coroutine(coro))
 
 
 @shared_task(bind=True, name="cleanup_expired")
@@ -30,7 +31,7 @@ def cleanup_expired_task(self):
     async def _cleanup():
         nonlocal deleted_executions, deleted_documents, deleted_files
 
-        async with async_session_factory() as db:
+        async with get_worker_session_factory()() as db:
             # 1. Delete agent executions older than 30 days
             cutoff_executions = now - timedelta(days=30)
             result = await db.execute(
